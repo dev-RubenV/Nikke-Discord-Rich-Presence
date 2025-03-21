@@ -1,0 +1,214 @@
+﻿@page "/"
+@using DiscordRP;
+@using DiscordRP.Model;
+@using System.Diagnostics;
+@using System.Threading.Tasks;
+
+<div class="page-container">
+    <div class="ma-4 d-flex justify-center">
+        <p class="mr-4">NIKKE is @(_nikkeProcess ? "running" : "not running")</p>
+        <p>_isInitialized is @(_isInitialized ? "true" : "false")</p>
+    </div>
+    <div class="d-flex justify-center">
+        <MudSwitch @bind-Value="Switched" LabelPlacement="Placement.End" Color="Color.Primary">
+            Turn @(Switched ? "OFF" : "ON") Rich Presence
+        </MudSwitch>
+    </div>
+    <MudGrid Class="mt-4">
+        <MudItem xs="12" sm="6">
+            <div class="ml-2">
+                <MudSelect @bind-Value="selectedLargeImage"
+                           Variant="Variant.Outlined"
+                           Label="Select large image"
+                           Clearable="false"
+                           Class="mb-4">
+                    @foreach (var image in largeImageKeyModels)
+                    {
+                        <MudSelectItem Value="image"><MudImage Class="rounded-l" Height="30" Width="30" src="@image.LargeImageKeyUrl" Alt="@image.Name"></MudImage> @image.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect @bind-Value="selectedSmallImage"
+                           Variant="Variant.Outlined"
+                           Label="Select small image"
+                           Clearable="false"
+                           Class="mb-4">
+                    @foreach (var image in smallImageKeyModels)
+                    {
+                        <MudSelectItem Value="image">
+                            @if (image.Name != "None")
+                            {
+                                <MudImage Class="rounded-circle" Height="25" Width="25" src="@image.SmallImageKeyUrl" Alt="@image.Name"></MudImage> @image.Name
+                            }
+                            else
+                            {
+                                @image.Name
+                            }
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudTextField Label="Details"
+                              Variant="Variant.Filled"
+                              HelperText="The user's current party status. (You can leave this empty)"
+                              @bind-Value="details"
+                              Class="mb-4" />
+
+                <MudTextField Label="State"
+                              Variant="Variant.Filled"
+                              HelperText="What the player is currently doing. (You can leave this empty)"
+                              @bind-Value="state"
+                              Class="mb-4" />
+            </div>
+        </MudItem>
+
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.h6" Class="mb-4">Preview</MudText>
+            <MudPaper Class="pa-4 mr-2" Elevation="0">
+                <MudCardContent>
+                    <MudText Class="mb-1" Typo="Typo.body2">Playing</MudText>
+                    <div class="d-flex">
+                        <div class="mr-3">
+                            @if (selectedLargeImage != null && !string.IsNullOrEmpty(selectedLargeImage.LargeImageKeyUrl))
+                            {
+                                <div class="avatar-container">
+                                    <img src="@selectedLargeImage.LargeImageKeyUrl" class="main-avatar" alt="Large image" />
+
+                                    @if (selectedSmallImage != null && selectedSmallImage.Name != "None" && !string.IsNullOrEmpty(selectedSmallImage.SmallImageKeyUrl))
+                                    {
+                                        <img src="@selectedSmallImage.SmallImageKeyUrl" class="status-icon" alt="Small image" />
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            <MudText Typo="Typo.body1" Class="mb-1"><strong>Goddess of Victory NIKKE</strong></MudText>
+                            @if (!string.IsNullOrEmpty(details))
+                            {
+                                <div>
+                                <MudText Typo="Typo.caption">@details</MudText>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(state))
+                            {
+                                <div>
+                                <MudText Typo="Typo.caption">@state</MudText>
+                                </div>
+                            }
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Success">Playing for 00:01</MudText>
+                            </div>
+                        </div>
+                    </div>
+                </MudCardContent>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</div>
+
+<div class="loading-bar-container">
+    @if (!_isInitialized && Switched == true)
+    {
+        <MudProgressLinear Color="Color.Primary" Rounded="true" Size="Size.Small" Indeterminate="true" />
+    }
+</div>
+
+
+@code {
+    private bool _switched = false;
+    private bool _nikkeProcess = false;
+    private bool _isInitialized = false;
+    private string details = String.Empty;
+    private string state = String.Empty;
+    private List<LargeImageKeyModel> largeImageKeyModels = new List<LargeImageKeyModel>();
+    private List<SmallImageKeyModel> smallImageKeyModels = new List<SmallImageKeyModel>();
+    private LargeImageKeyModel selectedLargeImage { get; set; } = new();
+    private SmallImageKeyModel selectedSmallImage { get; set; } = new();
+
+
+    private bool Switched
+    {
+        get => _switched;
+        set
+        {
+            if (_switched != value)
+            {
+                _switched = value;
+                if (_switched)
+                {
+                    StartRP();
+                }
+            }
+        }
+    }
+
+    NikkeRichPresence.DiscordRichPresence discordPresence = new NikkeRichPresence.DiscordRichPresence();
+
+    protected override void OnInitialized()
+    {
+        largeImageKeyModels = Data.LargeImageKeyData;
+        smallImageKeyModels = Data.SmallImageKeyData;
+
+        selectedLargeImage = largeImageKeyModels.FirstOrDefault(i => i.LargeImageKey == "nikke");
+        selectedSmallImage = smallImageKeyModels.FirstOrDefault(i => i.SmallImageKey == "nikke-dark");
+    }
+    
+    private async void StartRP()
+    {
+        StateHasChanged();
+
+        if (Switched == false)
+        {
+            await StopRP();
+        }
+        else
+        {
+            await MonitorProcessAsync("NIKKE");
+            await StopRP();
+        }
+    }
+
+    private async Task MonitorProcessAsync(string processName)
+    {
+        while (true)
+        {
+            Process[] processes = Process.GetProcessesByName(processName);
+            if (processes.Length > 0 && _isInitialized == false)
+            {
+                _nikkeProcess = true;
+                discordPresence.Initialize(selectedLargeImage.LargeImageKey, selectedSmallImage.SmallImageKey, details, state);
+                _isInitialized = true;
+            }
+            else if (processes.Length == 0)
+            {
+                _nikkeProcess = false;
+
+                if (_isInitialized)
+                {
+                    discordPresence.Deinitialize();
+                    _isInitialized = false;
+                }
+            }
+
+            if (_switched == false)
+            {
+                break;
+            }
+
+            await Task.Delay(10000);
+            StateHasChanged();
+        }
+    }
+
+    private Task StopRP()
+    {
+        if (_isInitialized == true)
+        {        
+            discordPresence.Deinitialize();
+        }
+
+        _isInitialized = false;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+}

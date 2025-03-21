@@ -1,0 +1,41 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider @bind-IsDarkMode="@_isDarkMode" Theme="NikkeTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+
+@Body
+
+
+@code {
+    bool _drawerOpen = true;
+    bool _isDarkMode = true;
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+        StateHasChanged();
+    }
+
+    MudTheme NikkeTheme = new MudTheme()
+        {
+            PaletteLight = new PaletteLight()
+            {
+                Primary = "#4d6bfe",
+                Secondary = "#abb2bd",
+                AppbarBackground = "#fcfcff",
+                DrawerBackground = "#fcfcff",
+                Surface = "#f6f6f6",
+            },
+            PaletteDark = new PaletteDark()
+            {
+                Primary = "#4d6bfe",
+                AppbarBackground = "#18181b",
+                DrawerBackground = "#212327",
+                TextPrimary = "#fcfcff",
+                Background = "18181b",
+            }
+        };
+}
