@@ -9,9 +9,13 @@ namespace DiscordRP
         {
             private DiscordRpcClient client;
 
+            public ulong UserId { get; private set; }
+            public string Username { get; private set; }
+            public string Avatar { get; private set; }
+
             // Called when your application first starts.
             // For example, just before your main loop, or OnEnable for Unity.
-            public void Initialize(string largeImageKey, string smallImageKey, string details, string state)
+            public void Initialize()
             {
                 // Create a Discord client
                 // NOTE: If you are using Unity3D, you must use the full constructor and define the pipe connection.
@@ -34,6 +38,10 @@ namespace DiscordRP
                 // Connect to the RPC
                 client.Initialize();
 
+            }
+
+            public void SetPresence(string largeImageKey, string smallImageKey, string details, string state)
+            {
                 // Set the rich presence
                 // Call this as many times as you want and anywhere in your code.
                 client.SetPresence(new RichPresence()
@@ -48,6 +56,19 @@ namespace DiscordRP
                     }
                 });
             }
+
+            public async Task GetUserDetails()
+            {
+                while (client.CurrentUser is null)
+                {
+                    Console.WriteLine("Looking for user details...");
+                    await Task.Delay(1000);
+                }
+                UserId = client.CurrentUser.ID;
+                Username = client.CurrentUser.DisplayName;
+                Avatar = client.CurrentUser.Avatar;
+            }
+
 
             // The main loop of your application, or some sort of timer. Literally the Update function in Unity3D
             public void Update()

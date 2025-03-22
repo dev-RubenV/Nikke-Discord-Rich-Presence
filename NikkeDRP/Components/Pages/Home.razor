@@ -18,10 +18,10 @@
         <MudItem xs="12" sm="6">
             <div class="ml-2">
                 <MudSelect @bind-Value="selectedLargeImage"
-                           Variant="Variant.Outlined"
-                           Label="Select large image"
-                           Clearable="false"
-                           Class="mb-4">
+                Variant="Variant.Outlined"
+                Label="Select large image"
+                Clearable="false"
+                Class="mb-4">
                     @foreach (var image in largeImageKeyModels)
                     {
                         <MudSelectItem Value="image"><MudImage Class="rounded-l" Height="30" Width="30" src="@image.LargeImageKeyUrl" Alt="@image.Name"></MudImage> @image.Name</MudSelectItem>
@@ -29,10 +29,10 @@
                 </MudSelect>
 
                 <MudSelect @bind-Value="selectedSmallImage"
-                           Variant="Variant.Outlined"
-                           Label="Select small image"
-                           Clearable="false"
-                           Class="mb-4">
+                Variant="Variant.Outlined"
+                Label="Select small image"
+                Clearable="false"
+                Class="mb-4">
                     @foreach (var image in smallImageKeyModels)
                     {
                         <MudSelectItem Value="image">
@@ -49,20 +49,58 @@
                 </MudSelect>
 
                 <MudTextField Label="Details"
-                              Variant="Variant.Filled"
-                              HelperText="The user's current party status. (You can leave this empty)"
-                              @bind-Value="details"
-                              Class="mb-4" />
+                Variant="Variant.Filled"
+                HelperText="The user's current party status. (You can leave this empty)"
+                @bind-Value="details"
+                Class="mb-4" />
 
                 <MudTextField Label="State"
-                              Variant="Variant.Filled"
-                              HelperText="What the player is currently doing. (You can leave this empty)"
-                              @bind-Value="state"
-                              Class="mb-4" />
+                Variant="Variant.Filled"
+                HelperText="What the player is currently doing. (You can leave this empty)"
+                @bind-Value="state"
+                Class="mb-4" />
             </div>
         </MudItem>
 
+
         <MudItem xs="12" sm="6">
+            <MudPaper Class="mr-2" Elevation="0">
+                <MudCardContent>
+                    <div class="d-flex">
+                        <div class="mr-3">
+                            @if (!string.IsNullOrEmpty(avatar))
+                            {
+                                <MudBadge Class="avatar-container" Origin="Origin.BottomRight" Color="Color.Success" Overlap="true" Bordered="true">
+                                    <MudImage Class="main-avatar rounded-circle mt-2 ml-2" Src="@($"https://cdn.discordapp.com/avatars/{userId}/{avatar}")"></MudImage>
+                                </MudBadge>
+                            }
+                            else
+                            {
+                                <div>
+                                    <MudSkeleton SkeletonType="SkeletonType.Circle" Width="50px" Height="50px" />
+                                </div>
+                            }
+                        </div>
+                        <div class="flex-grow-1">
+                            @if (!string.IsNullOrEmpty(username))
+                            {
+                                <div>
+                                    <MudText Class="pt-7 pl-2" Typo="Typo.body1"><strong>@username</strong></MudText>
+                                </div>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body1" Class="mb-1">Discord:
+                                    <MudText Inline="true" Typo="Typo.body1" Color="Color.Error" Class="mb-1"><strong>Not Launched</strong></MudText>
+                                </MudText>
+                                <div>
+                                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Width="240px" Height="110px" />
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </MudCardContent>
+            </MudPaper>
             <MudText Typo="Typo.h6" Class="mb-4">Preview</MudText>
             <MudPaper Class="pa-4 mr-2" Elevation="0">
                 <MudCardContent>
@@ -86,13 +124,13 @@
                             @if (!string.IsNullOrEmpty(details))
                             {
                                 <div>
-                                <MudText Typo="Typo.caption">@details</MudText>
+                                    <MudText Typo="Typo.caption">@details</MudText>
                                 </div>
                             }
                             @if (!string.IsNullOrEmpty(state))
                             {
                                 <div>
-                                <MudText Typo="Typo.caption">@state</MudText>
+                                    <MudText Typo="Typo.caption">@state</MudText>
                                 </div>
                             }
                             <div>
@@ -124,6 +162,9 @@
     private List<SmallImageKeyModel> smallImageKeyModels = new List<SmallImageKeyModel>();
     private LargeImageKeyModel selectedLargeImage { get; set; } = new();
     private SmallImageKeyModel selectedSmallImage { get; set; } = new();
+    private ulong userId { get; set; }
+    private string username { get; set; }
+    private string avatar {get; set; }
 
 
     private bool Switched
@@ -151,8 +192,22 @@
 
         selectedLargeImage = largeImageKeyModels.FirstOrDefault(i => i.LargeImageKey == "nikke");
         selectedSmallImage = smallImageKeyModels.FirstOrDefault(i => i.SmallImageKey == "nikke-dark");
+
     }
-    
+
+    protected override async Task OnInitializedAsync()
+    {
+        discordPresence.Initialize();
+        await discordPresence.GetUserDetails();
+
+        userId = discordPresence.UserId;
+        username = discordPresence.Username;
+        avatar = discordPresence.Avatar;
+
+        StateHasChanged();
+
+    }
+
     private async void StartRP()
     {
         StateHasChanged();
@@ -176,7 +231,8 @@
             if (processes.Length > 0 && _isInitialized == false)
             {
                 _nikkeProcess = true;
-                discordPresence.Initialize(selectedLargeImage.LargeImageKey, selectedSmallImage.SmallImageKey, details, state);
+                discordPresence.Initialize();
+                discordPresence.SetPresence(selectedLargeImage.LargeImageKey, selectedSmallImage.SmallImageKey, details, state);
                 _isInitialized = true;
             }
             else if (processes.Length == 0)
