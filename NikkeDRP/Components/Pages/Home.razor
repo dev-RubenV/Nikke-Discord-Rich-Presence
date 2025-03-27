@@ -18,27 +18,35 @@
         <MudItem xs="12" sm="6">
             <div class="ml-2">
                 <MudSelect @bind-Value="selectedLargeImage"
-                Variant="Variant.Outlined"
-                Label="Select large image"
-                Clearable="false"
-                Class="mb-4">
+                           Variant="Variant.Outlined"
+                           Label="Select large image"
+                           Clearable="false"
+                           >
                     @foreach (var image in largeImageKeyModels)
                     {
-                        <MudSelectItem Value="image"><MudImage Class="rounded-l" Height="30" Width="30" src="@image.LargeImageKeyUrl" Alt="@image.Name"></MudImage> @image.Name</MudSelectItem>
+                        <MudSelectItem Value="image">
+                            <div class="d-flex align-items-center">
+                                <MudImage Class="mr-2 rounded-l" Height="30" Width="30" src="@image.LargeImageKeyUrl" Alt="@image.Name"></MudImage>
+                                <MudText Class="py-1">@image.Name</MudText>
+                            </div>
+                        </MudSelectItem>
                     }
                 </MudSelect>
 
                 <MudSelect @bind-Value="selectedSmallImage"
-                Variant="Variant.Outlined"
-                Label="Select small image"
-                Clearable="false"
-                Class="mb-4">
+                           Variant="Variant.Outlined"
+                           Label="Select small image"
+                           Clearable="false"
+                           Class="py-1">
                     @foreach (var image in smallImageKeyModels)
                     {
                         <MudSelectItem Value="image">
                             @if (image.Name != "None")
                             {
-                                <MudImage Class="rounded-circle" Height="25" Width="25" src="@image.SmallImageKeyUrl" Alt="@image.Name"></MudImage> @image.Name
+                                <div class="d-flex align-items-center">
+                                    <MudImage Class="mr-2 rounded-circle" Height="25" Width="25" src="@image.SmallImageKeyUrl" Alt="@image.Name"></MudImage>
+                                    <MudText Class="py-1">@image.Name</MudText>
+                                </div>
                             }
                             else
                             {
