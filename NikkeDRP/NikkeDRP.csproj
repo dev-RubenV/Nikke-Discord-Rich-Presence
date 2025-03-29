@@ -60,7 +60,14 @@
     </ItemGroup>
 
     <ItemGroup>
+      <None Remove="Resources\AppIcon\nikkedrp.png" />
       <None Remove="Resources\AppIcon\nikkedrp.svg" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <MauiAsset Include="Resources\AppIcon\nikkedrp.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </MauiAsset>
     </ItemGroup>
 
     <ItemGroup>
@@ -78,6 +85,24 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DiscordRP\DiscordRP.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="AppShell.xaml.cs">
+        <DependentUpon>AppShell.xaml</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+      <MauiXaml Update="AppShell.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </MauiXaml>
+      <MauiXaml Update="MainPage.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </MauiXaml>
+      <MauiXaml Update="NikkeDRPWindow.xaml">
+        <Generator>MSBuild:Compile</Generator>
+      </MauiXaml>
     </ItemGroup>
 
 </Project>

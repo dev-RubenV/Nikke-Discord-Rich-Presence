@@ -24,7 +24,7 @@ namespace NikkeDRP
             builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Logging.AddDebug();
 #endif
-
+            builder.Services.AddSingleton<NikkeDRPWindow>();
             return builder.Build();
         }
     }

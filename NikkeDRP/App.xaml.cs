@@ -1,11 +1,16 @@
-﻿namespace NikkeDRP
+﻿using MudBlazor;
+using System.Security.Cryptography.X509Certificates;
+
+namespace NikkeDRP
 {
     public partial class App : Application
     {
-        public App()
+        public NikkeDRPWindow TitleWindow { get; }
+
+        public App(NikkeDRPWindow titleWindow)
         {
             InitializeComponent();
-            MainPage = new MainPage();
+            TitleWindow = titleWindow;
         }
 
         protected override Window CreateWindow(IActivationState? activationState)
@@ -13,18 +18,17 @@
             const int newHeight = 600;
             const int newWidth = 800;
 
-            var newWindow = new Window(MainPage)
-            {
-                Height = newHeight,
-                Width = newWidth,
-                Title = "Nikke Discord Rich Presence",
-                MaximumHeight = newHeight,
-                MinimumHeight = newHeight,
-                MaximumWidth = newWidth,
-                MinimumWidth = newWidth,
-            };
+            TitleWindow.Page = new AppShell();
 
-            return newWindow;
+            TitleWindow.Height = newHeight;
+            TitleWindow.Width = newWidth;
+            TitleWindow.MaximumHeight = newHeight;
+            TitleWindow.MinimumHeight = newHeight;
+            TitleWindow.MaximumWidth = newWidth;
+            TitleWindow.MinimumWidth = newWidth;
+
+            return TitleWindow;
         }
+
     }
 }
