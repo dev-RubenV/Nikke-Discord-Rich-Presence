@@ -152,6 +152,10 @@
     </MudGrid>
 </div>
 
+<MudButton OnClick="MinimizeToTray" Variant="Variant.Filled" Color="Color.Primary">
+    Minimize to Tray
+</MudButton>
+
 <div class="loading-bar-container">
     @if (!_isInitialized && Switched == true)
     {
@@ -274,5 +278,11 @@
         _isInitialized = false;
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    private void MinimizeToTray()
+    {
+        System.Diagnostics.Debug.WriteLine("Minimize button clicked");
+        NikkeDRP.Services.SystemTrayService.MinimizeToTray();
     }
 }

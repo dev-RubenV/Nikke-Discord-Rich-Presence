@@ -1,4 +1,6 @@
-﻿using MudBlazor;
+﻿using Microsoft.Maui.Controls;
+using MudBlazor;
+using NikkeDRP.Services;
 using System.Security.Cryptography.X509Certificates;
 
 namespace NikkeDRP
@@ -19,6 +21,7 @@ namespace NikkeDRP
             const int newWidth = 800;
 
             TitleWindow.Page = new AppShell();
+            SystemTrayService.Initialize(TitleWindow);
 
             TitleWindow.Height = newHeight;
             TitleWindow.Width = newWidth;

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
 using MudBlazor.Services;
+using H.NotifyIcon; 
 
 namespace NikkeDRP
 {
@@ -12,6 +13,7 @@ namespace NikkeDRP
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
+                .UseNotifyIcon()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
@@ -24,7 +26,9 @@ namespace NikkeDRP
             builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Logging.AddDebug();
 #endif
+
             builder.Services.AddSingleton<NikkeDRPWindow>();
+
             return builder.Build();
         }
     }
