@@ -3,6 +3,8 @@
 @using DiscordRP.Model;
 @using System.Diagnostics;
 @using System.Threading.Tasks;
+@using Newtonsoft.Json;
+@using System.IO;
 
 <div class="page-container">
     <div class="ma-4 d-flex justify-center">
@@ -17,42 +19,41 @@
     <MudGrid Class="mt-4">
         <MudItem xs="12" sm="6">
             <div class="ml-2">
-                <MudSelect @bind-Value="selectedLargeImage"
-                           Variant="Variant.Outlined"
-                           Label="Select large image"
-                           Clearable="false"
-                           >
+                <MudSelect @bind-Value="selectedLargeImageKey"
+                Variant="Variant.Outlined"
+                Label="Select large image"
+                Clearable="false">
                     @foreach (var image in largeImageKeyModels)
                     {
-                        <MudSelectItem Value="image">
-                            <div class="d-flex align-items-center">
-                                <MudImage Class="mr-2 rounded-l" Height="30" Width="30" src="@image.LargeImageKeyUrl" Alt="@image.Name"></MudImage>
-                                <MudText Class="py-1">@image.Name</MudText>
-                            </div>
-                        </MudSelectItem>
-                    }
-                </MudSelect>
-
-                <MudSelect @bind-Value="selectedSmallImage"
-                           Variant="Variant.Outlined"
-                           Label="Select small image"
-                           Clearable="false"
-                           Class="py-1">
-                    @foreach (var image in smallImageKeyModels)
-                    {
-                        <MudSelectItem Value="image">
-                            @if (image.Name != "None")
-                            {
+                            <MudSelectItem Value="@image.LargeImageKey">
                                 <div class="d-flex align-items-center">
-                                    <MudImage Class="mr-2 rounded-circle" Height="25" Width="25" src="@image.SmallImageKeyUrl" Alt="@image.Name"></MudImage>
+                                    <MudImage Class="mr-2 rounded-l" Height="30" Width="30" src="@image.LargeImageKeyUrl" Alt="@image.Name"></MudImage>
                                     <MudText Class="py-1">@image.Name</MudText>
                                 </div>
+                            </MudSelectItem>
+                    }
+                </MudSelect>
+    
+                <MudSelect @bind-Value="selectedSmallImageKey"
+                Variant="Variant.Outlined"
+                Label="Select small image"
+                Clearable="false"
+                Class="py-1">
+                    @foreach (var image in smallImageKeyModels)
+                    {
+                            <MudSelectItem Value="@image.SmallImageKey">
+                            @if (image.Name != "None")
+                            {
+                                        <div class="d-flex align-items-center">
+                                            <MudImage Class="mr-2 rounded-circle" Height="25" Width="25" src="@image.SmallImageKeyUrl" Alt="@image.Name"></MudImage>
+                                            <MudText Class="py-1">@image.Name</MudText>
+                                        </div>
                             }
                             else
                             {
                                 @image.Name
                             }
-                        </MudSelectItem>
+                            </MudSelectItem>
                     }
                 </MudSelect>
 
@@ -109,7 +110,7 @@
                     </div>
                 </MudCardContent>
             </MudPaper>
-            <MudText Typo="Typo.h6" Class="mb-4">Preview</MudText>
+            <MudText Typo="Typo.h6" Class="mb-2 mt-2">Preview</MudText>
             <MudPaper Class="pa-4 mr-2" Elevation="0">
                 <MudCardContent>
                     <MudText Class="mb-1" Typo="Typo.body2">Playing</MudText>
@@ -152,9 +153,21 @@
     </MudGrid>
 </div>
 
-<MudButton OnClick="MinimizeToTray" Variant="Variant.Filled" Color="Color.Primary">
-    Minimize to Tray
-</MudButton>
+<MudDivider />
+<MudText Typo="Typo.h6" Class="ma-4">Settings</MudText>
+
+<MudSwitch @bind-Value="MinimizeToTraySetting" LabelPlacement="Placement.End" Color="Color.Primary">
+    Minimize to tray
+</MudSwitch>
+
+<MudSwitch @bind-Value="RunOnStartupSetting" LabelPlacement="Placement.End" Color="Color.Primary">
+    Run on Windows startup
+</MudSwitch>
+
+<MudSwitch @bind-Value="RichPresenceOnAppStartupSetting" LabelPlacement="Placement.End" Color="Color.Primary">
+    Turn Rich Presence automatically on app startup
+</MudSwitch>
+
 
 <div class="loading-bar-container">
     @if (!_isInitialized && Switched == true)
@@ -168,16 +181,108 @@
     private bool _switched = false;
     private bool _nikkeProcess = false;
     private bool _isInitialized = false;
-    private string details = String.Empty;
-    private string state = String.Empty;
     private List<LargeImageKeyModel> largeImageKeyModels = new List<LargeImageKeyModel>();
     private List<SmallImageKeyModel> smallImageKeyModels = new List<SmallImageKeyModel>();
-    private LargeImageKeyModel selectedLargeImage { get; set; } = new();
-    private SmallImageKeyModel selectedSmallImage { get; set; } = new();
     private ulong userId { get; set; }
     private string username { get; set; }
     private string avatar {get; set; }
 
+    // New string key properties for binding
+    private string selectedLargeImageKey { get; set; } = "nikke";
+    private string selectedSmallImageKey { get; set; } = "nikke-dark";
+
+    // Computed properties to get the full model objects based on keys
+    private LargeImageKeyModel selectedLargeImage =>
+        largeImageKeyModels.FirstOrDefault(i => i.LargeImageKey == selectedLargeImageKey) ?? new LargeImageKeyModel();
+
+    private SmallImageKeyModel selectedSmallImage =>
+        smallImageKeyModels.FirstOrDefault(i => i.SmallImageKey == selectedSmallImageKey) ?? new SmallImageKeyModel();
+
+    // Property change handlers
+    private void OnLargeImageKeyChanged(string value)
+    {
+        if (selectedLargeImageKey != value)
+        {
+            selectedLargeImageKey = value;
+            SendSettings();
+        }
+    }
+
+    private void OnSmallImageKeyChanged(string value)
+    {
+        if (selectedSmallImageKey != value)
+        {
+            selectedSmallImageKey = value;
+            SendSettings();
+        }
+    }
+
+    private string details = String.Empty;
+    public string Details {get => details;
+        set
+        {
+            if(details != value)
+            {
+                details = value;
+                SendSettings();
+            }
+        } 
+    }
+
+    private string state = String.Empty;
+    public string State
+    {
+        get => state;
+        set
+        {
+            if (state != value)
+            {
+                state = value;
+                SendSettings();
+            }
+        }
+    }
+
+    private bool minimizeToTraySetting = true;
+    public bool MinimizeToTraySetting {get => minimizeToTraySetting;
+        set
+        {
+            if(minimizeToTraySetting != value)
+            {
+                minimizeToTraySetting = value;
+                SendSettings();
+                UpdateMinimizeToTraySettingInWindow(value);
+            }
+        }
+    }
+
+    private bool runOnStartupSetting = false;
+    public bool RunOnStartupSetting
+    {
+        get => runOnStartupSetting;
+        set
+        {
+            if (runOnStartupSetting != value)
+            {
+                runOnStartupSetting = value;
+                SendSettings();
+            }
+        }
+    }
+
+    private bool richPresenceOnAppStartupSetting = false;
+    public bool RichPresenceOnAppStartupSetting
+    {
+        get => richPresenceOnAppStartupSetting;
+        set
+        {
+            if (richPresenceOnAppStartupSetting != value)
+            {
+                richPresenceOnAppStartupSetting = value;
+                SendSettings();
+            }
+        }
+    }
 
     private bool Switched
     {
@@ -202,9 +307,19 @@
         largeImageKeyModels = Data.LargeImageKeyData;
         smallImageKeyModels = Data.SmallImageKeyData;
 
-        selectedLargeImage = largeImageKeyModels.FirstOrDefault(i => i.LargeImageKey == "nikke");
-        selectedSmallImage = smallImageKeyModels.FirstOrDefault(i => i.SmallImageKey == "nikke-dark");
+        var json = File.ReadAllText("appsettings.json");
+        dynamic settings = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
 
+        minimizeToTraySetting = settings.MinimizeToTray;
+        runOnStartupSetting = settings.RunOnStartup;
+        richPresenceOnAppStartupSetting = settings.RichPresenceEnabledOnStartup;
+        var largeImageModel = settings.SelectedLargeImage.ToObject<LargeImageKeyModel>();
+        var smallImageModel = settings.SelectedSmallImage.ToObject<SmallImageKeyModel>();
+        selectedLargeImageKey = largeImageModel?.LargeImageKey ?? "nikke";
+        selectedSmallImageKey = smallImageModel?.SmallImageKey ?? "nikke-dark";
+        details = settings.Details;
+        state = settings.State;
+        _switched = richPresenceOnAppStartupSetting;
     }
 
     protected override async Task OnInitializedAsync()
@@ -280,9 +395,18 @@
         return Task.CompletedTask;
     }
 
-    private void MinimizeToTray()
+    private async Task SendSettings()
     {
-        System.Diagnostics.Debug.WriteLine("Minimize button clicked");
-        NikkeDRP.Services.SystemTrayService.MinimizeToTray();
+        Configuration config = new Configuration();
+        await Task.Run(() => config.AppSettings(minimizeToTraySetting, runOnStartupSetting, richPresenceOnAppStartupSetting, selectedLargeImage, selectedSmallImage, details, state));
+    }
+
+    private void UpdateMinimizeToTraySettingInWindow(bool enabled)
+    {
+        var window = App.Current.MainPage.Window as NikkeDRPWindow;
+        if (window != null)
+        {
+            window.UpdateMinimizeToTraySetting(enabled);
+        }
     }
 }

@@ -19,6 +19,7 @@ namespace DiscordRP.Model
         public string Name { get; set; }
         public string SmallImageKey { get; set; }
         public string SmallImageKeyUrl { get; set; }
+
     }
 
     public static class Data

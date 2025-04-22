@@ -1,6 +1,8 @@
 using Microsoft.Maui.Controls;
 using NikkeDRP.Services;
 using System.Runtime.InteropServices;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace NikkeDRP
 {
@@ -37,15 +39,34 @@ namespace NikkeDRP
         private WndProcDelegate _wndProcDelegate;
         private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
 
+        // Add a private field to track the current state
+        private bool _minimizeToTrayEnabled;
+
         public NikkeDRPWindow()
         {
             InitializeComponent();
 
-            // Initialize the system tray service
-                SystemTrayService.Initialize(this);
+            var json = File.ReadAllText("appsettings.json");
+            dynamic settings = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
 
-                // Hook into the window created event
-                this.Created += OnWindowCreated;
+            // Set the initial state
+            _minimizeToTrayEnabled = settings.MinimizeToTray == true || settings.MinimizeToTray is null;
+
+            // Initialize the system tray service regardless of the setting
+            // (we'll need it even if minimize-to-tray is disabled initially but enabled later)
+            SystemTrayService.Initialize(this);
+
+            // Always hook into the window created event
+            this.Created += OnWindowCreated;
+        }
+
+        // Add a public method to update the minimize-to-tray setting
+        public void UpdateMinimizeToTraySetting(bool enabled)
+        {
+            _minimizeToTrayEnabled = enabled;
+
+            // No need to modify window hooks as we'll check _minimizeToTrayEnabled in WndProc
+            System.Diagnostics.Debug.WriteLine($"Minimize to tray setting updated: {enabled}");
         }
 
         private void OnWindowCreated(object sender, EventArgs e)
@@ -61,7 +82,7 @@ namespace NikkeDRP
                     
                     if (_hWnd != IntPtr.Zero)
                     {
-                        // Set up window procedure hook
+                        // Set up window procedure hook regardless of the minimize-to-tray setting
                         _wndProcDelegate = new WndProcDelegate(WndProc);
                         IntPtr functionPointer = Marshal.GetFunctionPointerForDelegate(_wndProcDelegate);
                         
@@ -95,8 +116,8 @@ namespace NikkeDRP
         {
             try
             {
-                // Intercept minimize command
-                if (msg == WM_SYSCOMMAND && (wParam.ToInt32() & 0xFFF0) == SC_MINIMIZE)
+                // Only intercept minimize command if minimize-to-tray is enabled
+                if (_minimizeToTrayEnabled && msg == WM_SYSCOMMAND && (wParam.ToInt32() & 0xFFF0) == SC_MINIMIZE)
                 {
                     System.Diagnostics.Debug.WriteLine("Minimize command intercepted");
                     // Instead of minimizing, minimize to tray
