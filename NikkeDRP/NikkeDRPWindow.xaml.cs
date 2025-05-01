@@ -3,6 +3,8 @@ using NikkeDRP.Services;
 using System.Runtime.InteropServices;
 using Newtonsoft.Json;
 using System.IO;
+using DiscordRP.Model;
+using H.NotifyIcon;
 
 namespace NikkeDRP
 {
@@ -41,16 +43,51 @@ namespace NikkeDRP
 
         // Add a private field to track the current state
         private bool _minimizeToTrayEnabled;
+        private bool _richPresenceEnabledOnStartup;
 
         public NikkeDRPWindow()
         {
             InitializeComponent();
 
-            var json = File.ReadAllText("appsettings.json");
-            dynamic settings = Newtonsoft.Json.JsonConvert.DeserializeObject(json);
+            const string filePath = "appsettings.json";
+
+            // Check if the file exists
+            if (!File.Exists(filePath))
+            {
+                // Define default settings
+                var defaultSettings = new
+                {
+                    MinimizeToTray = true,
+                    RunOnStartup = false,
+                    RichPresenceEnabledOnStartup = true,
+                    SelectedLargeImage = new LargeImageKeyModel
+                    {
+                        Name = "Nikke Original",
+                        LargeImageKey = "nikke",
+                        LargeImageKeyUrl = "https://cdn.discordapp.com/app-assets/1344627328562626621/1344648817718329434.png"
+                    },
+                    SelectedSmallImage = new SmallImageKeyModel
+                    {
+                        Name = "Default Small Image",
+                        SmallImageKey = "nikke-dark",
+                        SmallImageKeyUrl = "https://cdn.discordapp.com/app-assets/1344627328562626621/1344648817026535528.png"
+                    },
+                    Details = string.Empty,
+                    State = string.Empty
+                };
+
+                // Serialize and create the file
+                var json = Newtonsoft.Json.JsonConvert.SerializeObject(defaultSettings, Newtonsoft.Json.Formatting.Indented);
+                File.WriteAllText(filePath, json);
+            }
+
+            // Read the JSON file
+            var jsonContent = File.ReadAllText(filePath);
+            dynamic settings = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonContent);
 
             // Set the initial state
             _minimizeToTrayEnabled = settings.MinimizeToTray == true || settings.MinimizeToTray is null;
+            _richPresenceEnabledOnStartup = settings.RichPresenceEnabledOnStartup == true;
 
             // Initialize the system tray service regardless of the setting
             // (we'll need it even if minimize-to-tray is disabled initially but enabled later)
@@ -58,6 +95,14 @@ namespace NikkeDRP
 
             // Always hook into the window created event
             this.Created += OnWindowCreated;
+
+            this.Activated += (s, e) =>
+            {
+                if (_minimizeToTrayEnabled && _richPresenceEnabledOnStartup)
+                {
+                    this.Hide();
+                }
+            };
         }
 
         // Add a public method to update the minimize-to-tray setting
@@ -71,7 +116,7 @@ namespace NikkeDRP
 
         private void OnWindowCreated(object sender, EventArgs e)
         {
-#if WINDOWS
+        #if WINDOWS
             try
             {
                 // Get the window handle using WinUI interop
@@ -79,20 +124,29 @@ namespace NikkeDRP
                 if (handler?.PlatformView is Microsoft.UI.Xaml.Window platformWindow)
                 {
                     _hWnd = WinRT.Interop.WindowNative.GetWindowHandle(platformWindow);
-                    
+            
                     if (_hWnd != IntPtr.Zero)
                     {
-                        // Set up window procedure hook regardless of the minimize-to-tray setting
+                        // Set up window procedure hook
                         _wndProcDelegate = new WndProcDelegate(WndProc);
                         IntPtr functionPointer = Marshal.GetFunctionPointerForDelegate(_wndProcDelegate);
-                        
-                        // Use the appropriate function based on process architecture
+                
                         if (Environment.Is64BitProcess)
                             _oldWndProc = SetWindowLongPtr64(_hWnd, GWL_WNDPROC, functionPointer);
                         else
                             _oldWndProc = SetWindowLongPtr32(_hWnd, GWL_WNDPROC, functionPointer);
-                            
+                
                         System.Diagnostics.Debug.WriteLine("Window hook set up successfully");
+
+                        // ? ADD THIS BLOCK INSIDE THE _hWnd CHECK ?
+                        if (_minimizeToTrayEnabled && _richPresenceEnabledOnStartup)
+                        {
+                            Dispatcher.Dispatch(() => 
+                            {
+                                SystemTrayService.MinimizeToTray();
+                                System.Diagnostics.Debug.WriteLine("Minimized to tray on startup");
+                            });
+                        }
                     }
                     else
                     {
@@ -108,8 +162,8 @@ namespace NikkeDRP
             {
                 System.Diagnostics.Debug.WriteLine($"Error setting up window hook: {ex}");
             }
-#endif
-        }
+        #endif
+                }
 
 #if WINDOWS
         private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
