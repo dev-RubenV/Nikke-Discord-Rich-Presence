@@ -329,10 +329,10 @@
         state = settings.State;
         _switched = richPresenceOnAppStartupSetting;
 
-		if (_switched)
-		{
-			StartRP();
-		}
+        if (_switched)
+        {
+            StartRP();
+        }
 
     }
 
@@ -374,7 +374,7 @@
             if (processes.Length > 0 && _isInitialized == false && processDiscord.Length > 0)
             {
                 _nikkeProcess = true;
-				_discordProcess = true;
+                _discordProcess = true;
                 discordPresence.Initialize();
                 discordPresence.SetPresence(selectedLargeImage.LargeImageKey, selectedSmallImage.SmallImageKey, details, state);
                 _isInitialized = true;
@@ -393,6 +393,8 @@
                     discordPresence.Deinitialize();
                     _isInitialized = false;
                 }
+
+                
             }
 			else if (processDiscord.Length == 0)
 			{

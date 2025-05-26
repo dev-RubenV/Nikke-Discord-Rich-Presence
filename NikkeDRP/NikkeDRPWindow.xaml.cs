@@ -45,6 +45,8 @@ namespace NikkeDRP
         private bool _minimizeToTrayEnabled;
         private bool _richPresenceEnabledOnStartup;
 
+        private bool _initialStartupMinimized = false;
+
         public NikkeDRPWindow()
         {
             InitializeComponent();
@@ -96,13 +98,22 @@ namespace NikkeDRP
             // Always hook into the window created event
             this.Created += OnWindowCreated;
 
-            this.Activated += (s, e) =>
+            this.Activated += OnWindowActivated;
+        }
+
+        private void OnWindowActivated(object sender, EventArgs e)
+        {
+            // Ensure this runs only once on initial startup
+            if (!_initialStartupMinimized && _minimizeToTrayEnabled && _richPresenceEnabledOnStartup)
             {
-                if (_minimizeToTrayEnabled && _richPresenceEnabledOnStartup)
-                {
-                    this.Hide();
-                }
-            };
+                SystemTrayService.MinimizeToTray(); // This should hide the window and show the tray icon
+                _initialStartupMinimized = true;
+                System.Diagnostics.Debug.WriteLine("Minimized to tray on startup via Activated event");
+
+                // Optional: Unsubscribe if it's truly a one-time startup action,
+                // though it won't harm anything if it stays subscribed due to the _initialStartupMinimized flag.
+                // this.Activated -= OnWindowActivated;
+            }
         }
 
         // Add a public method to update the minimize-to-tray setting
@@ -116,37 +127,33 @@ namespace NikkeDRP
 
         private void OnWindowCreated(object sender, EventArgs e)
         {
-        #if WINDOWS
+#if WINDOWS
             try
             {
-                // Get the window handle using WinUI interop
                 var handler = this.Handler;
                 if (handler?.PlatformView is Microsoft.UI.Xaml.Window platformWindow)
                 {
                     _hWnd = WinRT.Interop.WindowNative.GetWindowHandle(platformWindow);
-            
+
                     if (_hWnd != IntPtr.Zero)
                     {
-                        // Set up window procedure hook
                         _wndProcDelegate = new WndProcDelegate(WndProc);
                         IntPtr functionPointer = Marshal.GetFunctionPointerForDelegate(_wndProcDelegate);
-                
+
                         if (Environment.Is64BitProcess)
                             _oldWndProc = SetWindowLongPtr64(_hWnd, GWL_WNDPROC, functionPointer);
                         else
                             _oldWndProc = SetWindowLongPtr32(_hWnd, GWL_WNDPROC, functionPointer);
-                
+
                         System.Diagnostics.Debug.WriteLine("Window hook set up successfully");
 
-                        // ? ADD THIS BLOCK INSIDE THE _hWnd CHECK ?
-                        if (_minimizeToTrayEnabled && _richPresenceEnabledOnStartup)
-                        {
-                            Dispatcher.Dispatch(() => 
-                            {
-                                SystemTrayService.MinimizeToTray();
-                                System.Diagnostics.Debug.WriteLine("Minimized to tray on startup");
-                            });
-                        }
+                        // 3. REMOVE THE OLD STARTUP MINIMIZE LOGIC FROM HERE
+                        // The block that was here, starting with:
+                        // if (_minimizeToTrayEnabled && _richPresenceEnabledOnStartup)
+                        // {
+                        //     Dispatcher.Dispatch(() => ... );
+                        // }
+                        // ... should be completely removed.
                     }
                     else
                     {
@@ -162,8 +169,8 @@ namespace NikkeDRP
             {
                 System.Diagnostics.Debug.WriteLine($"Error setting up window hook: {ex}");
             }
-        #endif
-                }
+#endif
+        }
 
 #if WINDOWS
         private IntPtr WndProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
