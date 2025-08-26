@@ -1,21 +1,33 @@
-﻿namespace NikkeDRP
+﻿using System.Windows.Input;
+using Microsoft.Maui.Controls;
+using MauiWindow = Microsoft.Maui.Controls.Window;
+
+namespace NikkeDRP
 {
     public partial class MainPage : ContentPage
     {
-        public MainPage()
+        public ICommand ShowHideWindowCommand { get; }
+        public ICommand ExitApplicationCommand { get; }
+        private MauiWindow _mauiWindow;
+
+        public MainPage(MauiWindow mauiWindow)
         {
             InitializeComponent();
-            Loaded += MainPage_Loaded;
-        }
+            _mauiWindow = mauiWindow;
 
-        private async void MainPage_Loaded(object sender, EventArgs e)
+            ShowHideWindowCommand = new Command(ToggleWindowVisibility);
+            ExitApplicationCommand = new Command(() => Application.Current.Quit());
+
+            BindingContext = this;
+            #if WINDOWS
+                Loaded += OnLoaded;
+            #endif
+        }
+        partial void ToggleWindowVisibilityImpl();
+
+        private void ToggleWindowVisibility()
         {
-#if WINDOWS
-            var webView2 = (blazorWebView.Handler.PlatformView as Microsoft.UI.Xaml.Controls.WebView2);
-            await webView2.EnsureCoreWebView2Async();
-            webView2.CoreWebView2.Settings.AreBrowserAcceleratorKeysEnabled = false;
-            webView2.CoreWebView2.Settings.IsZoomControlEnabled = false;
-#endif
+            ToggleWindowVisibilityImpl();
         }
     }
 }
