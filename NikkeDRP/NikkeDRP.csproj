@@ -60,6 +60,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <Content Remove="wwwroot\Images\doro_approved.gif" />
+      <Content Remove="wwwroot\Images\doro_run.gif" />
+      <Content Remove="wwwroot\Images\dotnet_bot.svg" />
+      <Content Remove="wwwroot\Images\nikkedrp.png" />
+    </ItemGroup>
+
+    <ItemGroup>
       <None Remove="Resources\AppIcon\nikkedrp.png" />
       <None Remove="Resources\AppIcon\nikkedrp.svg" />
     </ItemGroup>
@@ -76,11 +83,14 @@
 
     <ItemGroup>
         <PackageReference Include="DiscordRichPresence" Version="1.2.1.24" />
+        <PackageReference Include="H.NotifyIcon" Version="2.3.0" />
+        <PackageReference Include="H.NotifyIcon.Maui" Version="2.3.0" />
         <PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
         <PackageReference Include="MudBlazor" Version="8.3.0" />
         <PackageReference Include="MudBlazor.ThemeManager" Version="3.0.0" />
+        <PackageReference Include="System.Management" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup>

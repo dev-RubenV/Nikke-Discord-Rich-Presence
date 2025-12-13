@@ -1,4 +1,5 @@
 ﻿using MudBlazor;
+using H.NotifyIcon.EfficiencyMode;
 using System.Security.Cryptography.X509Certificates;
 
 namespace NikkeDRP
@@ -15,8 +16,12 @@ namespace NikkeDRP
 
         protected override Window CreateWindow(IActivationState? activationState)
         {
-            const int newHeight = 600;
+            const int newHeight = 460;
             const int newWidth = 800;
+
+            #if WINDOWS
+                EfficiencyModeUtilities.SetEfficiencyMode(true);
+            #endif
 
             TitleWindow.Page = new AppShell();
 

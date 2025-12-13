@@ -1,30 +1,27 @@
 ﻿@page "/"
 @using DiscordRP;
 @using DiscordRP.Model;
+@using NikkeDRP.Services;
+@using NikkeDRP.Models;
 @using System.Diagnostics;
+@using System.Management;
 @using System.Threading.Tasks;
+@using System.Security.Principal;
 
 <div class="page-container">
-    <div class="ma-4 d-flex justify-center">
-        <p class="mr-4">NIKKE is @(_nikkeProcess ? "running" : "not running")</p>
-        <p>_isInitialized is @(_isInitialized ? "true" : "false")</p>
-    </div>
-    <div class="d-flex justify-center">
-        <MudSwitch @bind-Value="Switched" LabelPlacement="Placement.End" Color="Color.Primary">
-            Turn @(Switched ? "OFF" : "ON") Rich Presence
-        </MudSwitch>
-    </div>
-    <MudGrid Class="mt-4">
+    <MudGrid Class="mt-2">
         <MudItem xs="12" sm="6">
             <div class="ml-2">
-                <MudSelect @bind-Value="selectedLargeImage"
+                <MudSelect T="string"
                            Variant="Variant.Outlined"
                            Label="Select large image"
                            Clearable="false"
+                           Value="@selectedLargeImageKey"
+                           ValueChanged="OnLargeImageKeyChanged"
                            >
                     @foreach (var image in largeImageKeyModels)
                     {
-                        <MudSelectItem Value="image">
+                        <MudSelectItem Value="@image.LargeImageKey">
                             <div class="d-flex align-items-center">
                                 <MudImage Class="mr-2 rounded-l" Height="30" Width="30" src="@image.LargeImageKeyUrl" Alt="@image.Name"></MudImage>
                                 <MudText Class="py-1">@image.Name</MudText>
@@ -33,14 +30,17 @@
                     }
                 </MudSelect>
 
-                <MudSelect @bind-Value="selectedSmallImage"
+                <MudSelect T="string"
                            Variant="Variant.Outlined"
                            Label="Select small image"
                            Clearable="false"
-                           Class="py-1">
+                           Class="py-1"
+                           Value="@selectedSmallImageKey"
+                           ValueChanged="OnSmallImageKeyChanged"
+                           >
                     @foreach (var image in smallImageKeyModels)
                     {
-                        <MudSelectItem Value="image">
+                        <MudSelectItem Value="@image.SmallImageKey">
                             @if (image.Name != "None")
                             {
                                 <div class="d-flex align-items-center">
@@ -59,14 +59,14 @@
                 <MudTextField Label="Details"
                 Variant="Variant.Filled"
                 HelperText="The user's current party status. (You can leave this empty)"
-                @bind-Value="details"
+                @bind-Value="Details"
                 Class="mb-4" />
 
                 <MudTextField Label="State"
                 Variant="Variant.Filled"
                 HelperText="What the player is currently doing. (You can leave this empty)"
-                @bind-Value="state"
-                Class="mb-4" />
+                @bind-Value="State"
+                Class="mb-4" />         
             </div>
         </MudItem>
 
@@ -109,8 +109,8 @@
                     </div>
                 </MudCardContent>
             </MudPaper>
-            <MudText Typo="Typo.h6" Class="mb-4">Preview</MudText>
-            <MudPaper Class="pa-4 mr-2" Elevation="0">
+            <MudText Typo="Typo.h6" Class="mt-3 mb-1">Preview</MudText>
+            <MudPaper Class="pa-3 mr-2" Elevation="0">
                 <MudCardContent>
                     <MudText Class="mb-1" Typo="Typo.body2">Playing</MudText>
                     <div class="d-flex">
@@ -149,9 +149,82 @@
                 </MudCardContent>
             </MudPaper>
         </MudItem>
+        <MudSwitch Class="ml-6" @bind-Value="Switched" LabelPlacement="Placement.End" Color="Color.Primary">
+            Turn @(Switched ? "OFF" : "ON") Rich Presence
+        </MudSwitch>
     </MudGrid>
-</div>
+    <MudDrawerContainer>
+        <MudDrawer @bind-Open="@_open" Elevation="0" Variant="@DrawerVariant.Temporary" Width="50%">
+            <div style="color: white">
+                <MudDrawerHeader Class="pa-0 ma-0">
+                    <div class="d-flex align-center">
+                        <MudIconButton Icon="@Icons.Material.Filled.Close" Color="Color.Default" OnClick="@ToggleDrawer" />
+                        <MudText Typo="Typo.h6">Settings</MudText>
+                    </div>
+                </MudDrawerHeader>
+                <MudDivider />
+                <MudNavMenu>
+                    <MudSwitch Class="my-2" @bind-Value="MinimizeToTraySetting" LabelPlacement="Placement.End" Color="Color.Primary">
+                        Minimize to tray
+                    </MudSwitch>
 
+                    <MudSwitch Class="my-2" @bind-Value="RunOnStartupSetting" LabelPlacement="Placement.End" Color="Color.Primary">
+                        Run 'NDRP' on Windows startup
+                    </MudSwitch>
+
+                    <MudSwitch Class="my-2" @bind-Value="RichPresenceOnAppStartupSetting" LabelPlacement="Placement.End" Color="Color.Primary">
+                        Turn Rich Presence automatically on app startup
+                    </MudSwitch>
+
+                    <div class="mt-4 d-flex justify-center align-end">
+                        <MudText Typo="Typo.subtitle2">
+                            NIKKE is
+                            @if (_nikkeProcess)
+                            {
+                                <MudText Inline="true" Typo="Typo.subtitle2" Color="Color.Primary">running</MudText>
+                            }
+                            else
+                            {
+                                <MudText Inline="true" Typo="Typo.subtitle2" Color="Color.Error">not running</MudText>
+                            }
+                            &nbsp;|
+                        </MudText>
+
+                        <MudText Typo="Typo.subtitle2">
+                            &nbsp; Rich Presence is 
+                            @if (_isInitialized)
+                            {
+                                <MudText Inline="true" Typo="Typo.subtitle2" Color="Color.Primary">active</MudText> 
+                            }else { 
+                                
+                                <MudText Inline="true" Typo="Typo.subtitle2" Color="Color.Error">not active</MudText>
+                            }
+                        </MudText>
+                    </div>
+                    @if (_isInitialized)
+                    {
+                        <div class="d-flex justify-center">
+                            <MudTooltip Text="Musan Pro">
+                                <MudLink Href="https://x.com/musan_pro"><MudImage Width="160" Src="Images/doro_approved.webp" Alt="Doro Approved" /></MudLink>
+                            </MudTooltip>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex justify-center">
+                            <MudTooltip Text="Musan Pro">
+                                <MudLink Href="https://x.com/musan_pro"><MudImage Width="160" Src="Images/doro_run.webp" Alt="Doro Run" /></MudLink>
+                            </MudTooltip>
+                        </div>
+                    }
+                </MudNavMenu>
+            </div>
+        </MudDrawer>
+        <div class="settings-container">
+            <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Primary" OnClick="@ToggleDrawer" />
+        </div>
+    </MudDrawerContainer>
+</div>
 <div class="loading-bar-container">
     @if (!_isInitialized && Switched == true)
     {
@@ -161,21 +234,134 @@
 
 
 @code {
+    private bool _open = false;
     private bool _switched = false;
     private bool _nikkeProcess = false;
     private bool _isInitialized = false;
+    private UserSettings userSettings;
     private string details = String.Empty;
     private string state = String.Empty;
+    private DataKeyService dataKeyService = new DataKeyService();
     private List<LargeImageKeyModel> largeImageKeyModels = new List<LargeImageKeyModel>();
     private List<SmallImageKeyModel> smallImageKeyModels = new List<SmallImageKeyModel>();
     private LargeImageKeyModel selectedLargeImage { get; set; } = new();
     private SmallImageKeyModel selectedSmallImage { get; set; } = new();
+
+    private string selectedLargeImageKey { get; set; } = "nikke";
+    private string selectedSmallImageKey { get; set; } = "nikke-dark";
+
     private ulong userId { get; set; }
     private string username { get; set; }
     private string avatar {get; set; }
 
+    private void OnLargeImageKeyChanged(string value)
+    {
+        if (selectedLargeImageKey != value)
+        {
+            selectedLargeImageKey = value;
+            var selectedModel = largeImageKeyModels.FirstOrDefault(i => i.LargeImageKey == value);
+            if (selectedModel != null)
+            {
+                selectedLargeImage = selectedModel;
+                userSettings.SelectedLargeImage = selectedModel;
+                SettingsService.Save(userSettings);
+            }
+        }
+    }
 
-    private bool Switched
+    private void OnSmallImageKeyChanged(string value)
+    {
+        if (selectedSmallImageKey != value)
+        {
+            selectedSmallImageKey = value;
+            var selectedModel = smallImageKeyModels.FirstOrDefault(i => i.SmallImageKey == value);
+            if (selectedModel != null)
+            {
+                selectedSmallImage = selectedModel;
+                userSettings.SelectedSmallImage = selectedModel;
+                SettingsService.Save(userSettings);
+            }
+        }
+    }
+
+    public string Details
+    {
+        get => details;
+        set
+        {
+            if (details != value)
+            {
+                details = value;
+                userSettings.Details = value;
+                SettingsService.Save(userSettings);
+            }
+        }
+    }
+
+    public string State
+    {
+        get => state;
+        set
+        {
+            if (state != value)
+            {
+                state = value;
+                userSettings.State = value;
+                SettingsService.Save(userSettings);
+            }
+        }
+    }
+
+    private bool minimizeToTraySetting = true;
+    public bool MinimizeToTraySetting
+    {
+        get => minimizeToTraySetting;
+        set
+        {
+            if (minimizeToTraySetting != value)
+            {
+                minimizeToTraySetting = value;
+                userSettings.MinimizeToTray = value;
+                SettingsService.Save(userSettings);
+                // UpdateMinimizeToTraySettingInWindow(value);
+            }
+        }
+    }
+
+    private bool runOnStartupSetting = false;
+    public bool RunOnStartupSetting
+    {
+        get => runOnStartupSetting;
+        set
+        {
+            if (runOnStartupSetting != value)
+            {
+                runOnStartupSetting = value;
+                userSettings.RunOnStartup = value;
+                SettingsService.Save(userSettings);
+                StartupManagerService.SetStartup(runOnStartupSetting);
+            }
+        }
+    }
+
+    private bool richPresenceOnAppStartupSetting = false;
+    public bool RichPresenceOnAppStartupSetting
+    {
+        get => richPresenceOnAppStartupSetting;
+        set
+        {
+            if (richPresenceOnAppStartupSetting != value)
+            {
+                richPresenceOnAppStartupSetting = value;
+                userSettings.RichPresenceEnabledOnStartup = value;
+                SettingsService.Save(userSettings);
+            }
+        }
+    }
+
+    public bool IsElevated { get; set; } = false;
+
+    public bool Switched
     {
         get => _switched;
         set
@@ -185,21 +371,54 @@
                 _switched = value;
                 if (_switched)
                 {
-                    StartRP();
+                    if(IsElevated)
+                    {
+                        StartRPasAdmin();
+                    }
+                    else
+                    {
+                        StartRP();
+                    };
                 }
             }
         }
     }
 
+
     NikkeRichPresence.DiscordRichPresence discordPresence = new NikkeRichPresence.DiscordRichPresence();
 
     protected override void OnInitialized()
     {
-        largeImageKeyModels = Data.LargeImageKeyData;
-        smallImageKeyModels = Data.SmallImageKeyData;
+        largeImageKeyModels = dataKeyService.LargeImages;
+        smallImageKeyModels = dataKeyService.SmallImages;
 
-        selectedLargeImage = largeImageKeyModels.FirstOrDefault(i => i.LargeImageKey == "nikke");
-        selectedSmallImage = smallImageKeyModels.FirstOrDefault(i => i.SmallImageKey == "nikke-dark");
+        userSettings = SettingsService.Load();
+
+        MinimizeToTraySetting = userSettings.MinimizeToTray;
+        RunOnStartupSetting = userSettings.RunOnStartup;
+        RichPresenceOnAppStartupSetting = userSettings.RichPresenceEnabledOnStartup;
+        Details = userSettings.Details;
+        State = userSettings.State;
+
+        var largeImageModel = userSettings.SelectedLargeImage;
+        var smallImageModel = userSettings.SelectedSmallImage;
+        selectedLargeImageKey = userSettings.SelectedLargeImage?.LargeImageKey ?? "nikke";
+        selectedSmallImageKey = userSettings.SelectedSmallImage?.SmallImageKey ?? "nikke-dark";
+
+        if (userSettings != null)
+        {
+            selectedLargeImage = userSettings.SelectedLargeImage;
+            selectedSmallImage = userSettings.SelectedSmallImage;
+        }
+
+        //Check for admin rights
+        using (WindowsIdentity identity = WindowsIdentity.GetCurrent())
+        {
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            IsElevated = principal.IsInRole(WindowsBuiltInRole.Administrator);
+        };
+
+        Switched = userSettings.RichPresenceEnabledOnStartup;
 
     }
 
@@ -267,12 +486,72 @@
     private Task StopRP()
     {
         if (_isInitialized == true)
-        {        
+        {
             discordPresence.Deinitialize();
         }
 
         _isInitialized = false;
         StateHasChanged();
         return Task.CompletedTask;
+    }
+    
+    private async void StartRPasAdmin()
+    {
+        StateHasChanged();
+        string processName = "nikke.exe";
+
+        // Initial check
+        bool isRunning = Process.GetProcessesByName("nikke").Length > 0;
+        if (isRunning)
+        {
+            discordPresence.SetPresence(selectedLargeImage.LargeImageKey, selectedSmallImage.SmallImageKey, details, state);
+            _nikkeProcess = true;
+            _isInitialized = true;
+        }
+
+        // Watch for process start
+        var startWatcher = new ManagementEventWatcher(
+            new WqlEventQuery("SELECT * FROM Win32_ProcessStartTrace"));
+        startWatcher.EventArrived += async (s, e) =>
+        {
+            string startedProcess = e.NewEvent.Properties["ProcessName"].Value.ToString();
+            if (startedProcess.Equals(processName, StringComparison.OrdinalIgnoreCase))
+            {
+                _nikkeProcess = true;
+                await InvokeAsync(() =>
+                {
+                    discordPresence.SetPresence(selectedLargeImage.LargeImageKey, selectedSmallImage.SmallImageKey, details, state);
+                    _isInitialized = true;
+                    StateHasChanged();
+                });
+            }
+        };
+        startWatcher.Start();
+
+        // Watch for process stop
+        var stopWatcher = new ManagementEventWatcher(
+            new WqlEventQuery("SELECT * FROM Win32_ProcessStopTrace"));
+        stopWatcher.EventArrived += async (s, e) =>
+        {
+            string stoppedProcess = e.NewEvent.Properties["ProcessName"].Value.ToString();
+            if (stoppedProcess.Equals(processName, StringComparison.OrdinalIgnoreCase))
+            {
+                _nikkeProcess = false;
+                await InvokeAsync(() =>
+                {
+                    if (_isInitialized){
+                        discordPresence.Deinitialize();
+                        _isInitialized = false;
+                        StateHasChanged();
+                    }
+                });
+            }
+        };
+        stopWatcher.Start();
+    }
+
+    private void ToggleDrawer()
+    {
+        _open = !_open;
     }
 }

@@ -88,6 +88,12 @@ h1:focus {
     z-index: 1000;
 }
 
+.settings-container {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+}
+
 .avatar-container {
     position: relative;
     width: 60px;
