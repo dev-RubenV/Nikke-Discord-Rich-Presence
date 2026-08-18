@@ -1,1 +1,1 @@
-Abandoned project due to NIKKE now supporting discord rich present 
+Discontinued project due to NIKKE now supporting discord rich present 
